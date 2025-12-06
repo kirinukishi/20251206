@@ -71,19 +71,18 @@ function init() {
     World.add(engine.world, [ground, leftWall, rightWall]);
 
     // Input Handling
-    // Touch/Mouse Start: Move fruit to position immediately
-    canvas.addEventListener('mousedown', handleInputStart);
-    canvas.addEventListener('touchstart', handleInputStart, { passive: false });
 
-    // Move: Follow pointer
-    canvas.addEventListener('mousemove', handleInputMove);
-    canvas.addEventListener('touchmove', handleInputMove, { passive: false });
+    // Mouse (PC): Follow cursor, Click to drop
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('click', handleMouseClick);
 
-    // End: Drop fruit
-    canvas.addEventListener('mouseup', handleInputEnd);
-    canvas.addEventListener('touchend', handleInputEnd, { passive: false });
-    // Also handle mouseleave as end to prevent stuck holding
-    canvas.addEventListener('mouseleave', handleInputEnd);
+    // Touch (Mobile): Drag to move, Release to drop
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    // Prevent default touch actions to stop scrolling/zooming
+    canvas.addEventListener('gesturestart', (e) => e.preventDefault());
 
     // Collision Handling (Merge Logic)
     // Use collisionActive to catch bodies that are already overlapping
@@ -156,7 +155,7 @@ function createNewCurrentFruit() {
     const char = CHARACTERS[index];
     const scale = getScale(char);
 
-    // Dynamic Start Y: Ensure we spawn above the highest fruit
+    // Dynamic Start Y
     let startY = 100;
     const bodies = Composite.allBodies(engine.world);
     let minY = render.canvas.height;
@@ -167,20 +166,19 @@ function createNewCurrentFruit() {
         }
     });
 
-    // If pile is high, move spawn up, but clamp to a minimum margin
     if (minY < startY + char.radius + 10) {
         startY = Math.max(50, minY - char.radius - 10);
     }
 
-    // Always spawn at CENTER
+    // Spawn at CENTER initially
     const startX = GAME_WIDTH / 2;
 
     currentFruit = Bodies.circle(startX, startY, char.radius, {
         isSensor: true, // Don't collide yet
         isStatic: true, // Static so it doesn't fall
         label: `fruit_${index}`,
-        slop: 0.05, // Reduce penetration allowance
-        density: 0.002, // Slightly heavier
+        slop: 0.05,
+        density: 0.002,
         render: {
             sprite: {
                 texture: char.img,
@@ -192,42 +190,80 @@ function createNewCurrentFruit() {
 
     World.add(engine.world, currentFruit);
 
-    // Prepare next
     nextFruitIndex = getRandomSpawnIndex();
     updateUI();
+
+    // If mouse is already on screen, update position immediately
+    if (lastMouseX !== undefined && !isNaN(lastMouseX)) {
+        updateFruitPositionX(lastMouseX);
+    }
 }
-
-
 
 function getScale(char) {
     return (char.radius * 2.3) / Math.max(char.w, char.h);
 }
 
-function handleInputStart(e) {
+// --- Mouse Handlers (PC) ---
+function handleMouseMove(e) {
     if (!currentFruit || isDropping) return;
     e.preventDefault();
-    updateFruitPosition(e);
+    const x = getEventX(e);
+    if (!isNaN(x)) {
+        lastMouseX = x;
+        updateFruitPositionX(x);
+    }
 }
 
-function handleInputMove(e) {
+function handleMouseClick(e) {
     if (!currentFruit || isDropping) return;
     e.preventDefault();
-    updateFruitPosition(e);
+    dropFruit();
 }
 
-function handleInputEnd(e) {
+// --- Touch Handlers (Mobile) ---
+function handleTouchStart(e) {
     if (!currentFruit || isDropping) return;
     e.preventDefault();
+    const x = getEventX(e);
+    if (!isNaN(x)) {
+        updateFruitPositionX(x);
+    }
+}
 
-    // Drop the fruit
+function handleTouchMove(e) {
+    if (!currentFruit || isDropping) return;
+    e.preventDefault();
+    const x = getEventX(e);
+    if (!isNaN(x)) {
+        updateFruitPositionX(x);
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!currentFruit || isDropping) return;
+    e.preventDefault();
+    dropFruit();
+}
+
+// --- Shared Logic ---
+function updateFruitPositionX(x) {
+    if (!currentFruit) return;
+    const radius = currentFruit.circleRadius;
+    const minX = radius + WALL_THICKNESS / 2 + 5;
+    const maxX = GAME_WIDTH - radius - WALL_THICKNESS / 2 - 5;
+
+    const clampedX = Math.max(minX, Math.min(x, maxX));
+    Body.setPosition(currentFruit, { x: clampedX, y: currentFruit.position.y });
+}
+
+function dropFruit() {
     isDropping = true;
 
     // Make it a real physical body
     currentFruit.isSensor = false;
-    Body.setStatic(currentFruit, false); // Properly wake up the body
+    Body.setStatic(currentFruit, false);
     Body.setVelocity(currentFruit, { x: 0, y: 0 });
 
-    // Add some friction/bounce properties
     currentFruit.restitution = 0.2;
     currentFruit.friction = 0.005;
 
@@ -240,21 +276,9 @@ function handleInputEnd(e) {
     }, 1000);
 }
 
-function updateFruitPosition(e) {
-    const x = getEventX(e);
-    if (isNaN(x)) return;
-
-    const radius = currentFruit.circleRadius;
-    const minX = radius + WALL_THICKNESS / 2 + 5;
-    const maxX = GAME_WIDTH - radius - WALL_THICKNESS / 2 - 5;
-
-    const clampedX = Math.max(minX, Math.min(x, maxX));
-    Body.setPosition(currentFruit, { x: clampedX, y: currentFruit.position.y });
-}
-
 function getEventX(e) {
     const rect = render.canvas.getBoundingClientRect();
-    const scaleX = GAME_WIDTH / rect.width; // Map CSS pixels to Canvas pixels
+    const scaleX = GAME_WIDTH / rect.width;
 
     let clientX;
 
