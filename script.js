@@ -46,35 +46,39 @@ function init() {
     const canvas = document.getElementById('game-canvas');
     const container = document.getElementById('game-container');
 
-    // Adjust size to container
-    const rect = container.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    // Set internal resolution (Physics World)
+    canvas.width = GAME_WIDTH;
+    canvas.height = GAME_HEIGHT;
 
     render = Render.create({
         canvas: canvas,
         engine: engine,
         options: {
-            width: rect.width,
-            height: rect.height,
+            width: GAME_WIDTH,
+            height: GAME_HEIGHT,
             wireframes: false,
             background: 'transparent',
-            pixelRatio: window.devicePixelRatio // Sharper rendering
+            pixelRatio: 1 // Fix pixel ratio to 1 for consistent physics mapping
         }
     });
 
     // Create Walls
-    const ground = Bodies.rectangle(rect.width / 2, rect.height + WALL_THICKNESS / 2 - 10, rect.width, WALL_THICKNESS, { isStatic: true, render: { fillStyle: '#5D4037' } });
-    const leftWall = Bodies.rectangle(0 - WALL_THICKNESS / 2, rect.height / 2, WALL_THICKNESS, rect.height * 2, { isStatic: true, render: { fillStyle: '#5D4037' } });
-    const rightWall = Bodies.rectangle(rect.width + WALL_THICKNESS / 2, rect.height / 2, WALL_THICKNESS, rect.height * 2, { isStatic: true, render: { fillStyle: '#5D4037' } });
+    // Make ground extremely thick to prevent falling through
+    const groundThickness = 500;
+    const ground = Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT + groundThickness / 2 - 10, GAME_WIDTH, groundThickness, { isStatic: true, render: { fillStyle: '#5D4037' } });
+    const leftWall = Bodies.rectangle(0 - WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, GAME_HEIGHT * 2, { isStatic: true, render: { fillStyle: '#5D4037' } });
+    const rightWall = Bodies.rectangle(GAME_WIDTH + WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, GAME_HEIGHT * 2, { isStatic: true, render: { fillStyle: '#5D4037' } });
 
     World.add(engine.world, [ground, leftWall, rightWall]);
 
     // Input Handling
     canvas.addEventListener('mousemove', handleInputMove);
     canvas.addEventListener('touchmove', handleInputMove, { passive: false });
-    canvas.addEventListener('click', handleInputClick);
-    canvas.addEventListener('touchend', handleInputClick);
+    canvas.addEventListener('click', handleInputClick); // Keep click for mouse
+
+    // Custom Tap Detection for Touch
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     // BGM Toggle
     const bgmBtn = document.getElementById('bgm-toggle');
@@ -82,56 +86,89 @@ function init() {
     // or just rely on stopPropagation in the click handler, but we need to ensure UI layer allows clicks.
     bgmBtn.addEventListener('click', toggleBGM);
     bgmBtn.addEventListener('touchstart', toggleBGM, { passive: false });
+}
 
-    // Collision Handling (Merge Logic)
-    // Use collisionActive to catch bodies that are already overlapping
-    Events.on(engine, 'collisionStart', handleCollisions);
-    Events.on(engine, 'collisionActive', handleCollisions);
+// Tap Detection Variables
+let touchStartTime = 0;
+let touchStartX = 0;
+let touchStartY = 0;
 
-    // Render Guide Line and Danger Line
-    Events.on(render, 'afterRender', () => {
-        renderGuideLine();
-        renderDangerLine();
-    });
+function handleTouchStart(e) {
+    if (e.touches && e.touches.length > 0) {
+        touchStartTime = Date.now();
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
 
-    // Game Over Check
-    Events.on(engine, 'afterUpdate', checkGameOver);
+        // Also handle move logic immediately
+        handleInputMove(e);
+    }
+}
 
-    // Start
-    Render.run(render);
-    runner = Runner.create();
-    Runner.run(runner, engine);
+function handleTouchEnd(e) {
+    e.preventDefault(); // Prevent ghost clicks
 
-    // Spawn first fruit to hold
-    createNewCurrentFruit();
-    updateUI();
+    const touchEndTime = Date.now();
+    const duration = touchEndTime - touchStartTime;
 
-    // Populate Evolution Guide
-    const guideList = document.getElementById('guide-list');
-    CHARACTERS.forEach((char, index) => {
-        const item = document.createElement('div');
-        item.className = 'guide-item';
+    // Get changed touch for position
+    let endX = touchStartX;
+    let endY = touchStartY;
+    if (e.changedTouches && e.changedTouches.length > 0) {
+        endX = e.changedTouches[0].clientX;
+        endY = e.changedTouches[0].clientY;
+    }
 
-        const img = document.createElement('img');
-        img.src = char.img;
-        img.className = 'guide-img';
+    const dist = Math.hypot(endX - touchStartX, endY - touchStartY);
 
-        const label = document.createElement('span');
-        label.innerText = index + 1; // 1-based index
-        label.style.fontWeight = 'bold';
+    // If short duration and short distance, treat as Tap
+    if (duration < 300 && dist < 20) {
+        handleInputClick(e);
+    }
+}
 
-        item.appendChild(label);
-        item.appendChild(img);
+Events.on(render, 'afterRender', () => {
+    renderGuideLine();
+    renderDangerLine();
+});
 
-        if (index < CHARACTERS.length - 1) {
-            const arrow = document.createElement('span');
-            arrow.className = 'guide-arrow';
-            arrow.innerText = '↓';
-            // item.appendChild(arrow); // Arrow inside item or between? Let's keep it simple
-        }
+// Game Over Check
+Events.on(engine, 'afterUpdate', checkGameOver);
 
-        guideList.appendChild(item);
-    });
+// Start
+Render.run(render);
+runner = Runner.create();
+Runner.run(runner, engine);
+
+// Spawn first fruit to hold
+createNewCurrentFruit();
+updateUI();
+
+// Populate Evolution Guide
+const guideList = document.getElementById('guide-list');
+CHARACTERS.forEach((char, index) => {
+    const item = document.createElement('div');
+    item.className = 'guide-item';
+
+    const img = document.createElement('img');
+    img.src = char.img;
+    img.className = 'guide-img';
+
+    const label = document.createElement('span');
+    label.innerText = index + 1; // 1-based index
+    label.style.fontWeight = 'bold';
+
+    item.appendChild(label);
+    item.appendChild(img);
+
+    if (index < CHARACTERS.length - 1) {
+        const arrow = document.createElement('span');
+        arrow.className = 'guide-arrow';
+        arrow.innerText = '↓';
+        // item.appendChild(arrow); // Arrow inside item or between? Let's keep it simple
+    }
+
+    guideList.appendChild(item);
+});
 }
 
 // Track last mouse X for spawning
@@ -227,7 +264,7 @@ function playBGM() {
     if (!isBGMEnabled) return;
     const bgm = document.getElementById('bgm');
     if (bgm && bgm.paused) {
-        bgm.volume = 0.3;
+        bgm.volume = 0.05; // Lower volume significantly
         bgm.play().catch(e => console.log("Audio play failed (user interaction needed):", e));
     }
 }
@@ -246,7 +283,7 @@ function handleInputMove(e) {
     // Clamp x
     const radius = currentFruit.circleRadius;
     const minX = radius + WALL_THICKNESS / 2 + 5;
-    const maxX = render.canvas.width - radius - WALL_THICKNESS / 2 - 5;
+    const maxX = GAME_WIDTH - radius - WALL_THICKNESS / 2 - 5;
 
     const clampedX = Math.max(minX, Math.min(x, maxX));
 
@@ -285,10 +322,22 @@ function handleInputClick(e) {
 
 function getEventX(e) {
     const rect = render.canvas.getBoundingClientRect();
+    const scaleX = GAME_WIDTH / rect.width; // Map CSS pixels to Canvas pixels
+
+    let clientX = e.clientX;
+
     if (e.touches && e.touches.length > 0) {
-        return e.touches[0].clientX - rect.left;
+        clientX = e.touches[0].clientX;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
     }
-    return e.clientX - rect.left;
+
+    // Fallback if clientX is undefined (shouldn't happen with correct events)
+    if (clientX === undefined) {
+        return lastMouseX;
+    }
+
+    return (clientX - rect.left) * scaleX;
 }
 
 function renderGuideLine() {
@@ -301,7 +350,7 @@ function renderGuideLine() {
 
     ctx.beginPath();
     ctx.moveTo(x, y + radius);
-    ctx.lineTo(x, render.canvas.height - WALL_THICKNESS);
+    ctx.lineTo(x, GAME_HEIGHT - WALL_THICKNESS);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]);
@@ -315,7 +364,7 @@ function renderDangerLine() {
 
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(render.canvas.width, y);
+    ctx.lineTo(GAME_WIDTH, y);
     ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)'; // Semi-transparent red
     ctx.lineWidth = 3;
     ctx.setLineDash([10, 10]); // Dashed line
@@ -326,7 +375,7 @@ function renderDangerLine() {
     ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
     ctx.font = 'bold 14px "M PLUS Rounded 1c", sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText('DANGER', render.canvas.width - 10, y - 5);
+    ctx.fillText('DANGER', GAME_WIDTH - 10, y - 5);
 }
 
 function handleCollisions(event) {
