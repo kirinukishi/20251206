@@ -1,0 +1,236 @@
+:root {
+    --bg-color: #FFF8E1;
+    /* Creamy background */
+    --container-bg: #FFFFFF;
+    --accent-color: #FFB74D;
+    /* Orange-ish for chicks */
+    --text-color: #5D4037;
+    /* Brown for text */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-color: var(--bg-color);
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    overflow: hidden;
+}
+
+#main-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    /* Standard mobile/vertical game width */
+    height: 90vh;
+    background-color: var(--container-bg);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 4px solid var(--text-color);
+    flex-shrink: 0;
+}
+
+#evolution-guide {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 20px;
+    border: 2px solid var(--text-color);
+    height: auto;
+    max-height: 90vh;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+#evolution-guide h3 {
+    margin: 0 0 10px 0;
+    color: var(--text-color);
+    text-align: center;
+    font-size: 1rem;
+}
+
+#guide-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    width: 100%;
+}
+
+.guide-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    background: #fff;
+    padding: 3px 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+}
+
+.guide-img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.guide-arrow {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+/* Hide guide on small screens if needed, or adjust layout */
+@media (max-width: 800px) {
+    #evolution-guide {
+        display: none;
+    }
+}
+
+/* Game Over Screen */
+#game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    flex-direction: column;
+}
+
+#game-over-screen.hidden {
+    display: none;
+}
+
+.game-over-content {
+    text-align: center;
+    color: white;
+    padding: 20px;
+    max-width: 90%;
+}
+
+.game-over-img {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 10px;
+    margin: 10px 0;
+    border: 3px solid #fff;
+}
+
+.line-link {
+    color: #4CAF50;
+    /* LINE Green */
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-decoration: none;
+    display: block;
+    margin: 10px 0 20px 0;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.retry-btn {
+    background: var(--accent-color);
+    border: none;
+    padding: 10px 30px;
+    font-size: 1.2rem;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+    color: white;
+    transition: transform 0.1s;
+}
+
+.retry-btn:active {
+    transform: scale(0.95);
+}
+
+#ui-layer {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#top-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    align-items: center;
+    pointer-events: auto;
+    /* Enable clicks on top bar */
+}
+
+.icon-btn {
+    background: #fff;
+    border: 3px solid var(--text-color);
+    border-radius: 30px;
+    /* Pill shape */
+    padding: 5px 15px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+}
+
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
+#score-board,
+#next-prediction {
+    background: #fff;
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 3px solid var(--text-color);
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#next-item-preview {
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    display: inline-block;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    /* Indicate clickable */
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ピヨリンズ スイカゲーム</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="main-wrapper">
+        <div id="game-container">
+            <div id="ui-layer">
+                <div id="top-bar">
+                    <button id="bgm-toggle" class="icon-btn">BGM ON</button>
+                    <div id="score-board">
+                        <span>スコア: <span id="score">0</span></span>
+                    </div>
+                    <div id="next-prediction">
+                        <span>次:</span>
+                        <div id="next-item-preview"></div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="game-canvas"></canvas>
+
+            <div id="game-over-screen" class="hidden">
+                <div class="game-over-content">
+                    <h2>GAME OVER</h2>
+                    <img src="assets/gameover.png" alt="Game Over" class="game-over-img">
+                    <p>お申し込みはLINEより</p>
+                    <a href="https://lin.ee/BR4P9yY" target="_blank" class="line-link">https://lin.ee/BR4P9yY</a>
+                    <button onclick="location.reload()" class="retry-btn">もう一度遊ぶ</button>
+                </div>
+            </div>
+
+            <audio id="bgm" src="assets/bgm.mp3" loop></audio>
+        </div>
+
+        <div id="evolution-guide">
+            <h3>進化の順番</h3>
+            <div id="guide-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
