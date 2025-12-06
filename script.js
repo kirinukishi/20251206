@@ -285,10 +285,22 @@ function handleInputClick(e) {
 
 function getEventX(e) {
     const rect = render.canvas.getBoundingClientRect();
+    const scaleX = GAME_WIDTH / rect.width; // Map CSS pixels to Canvas pixels
+
+    let clientX = e.clientX;
+
     if (e.touches && e.touches.length > 0) {
-        return e.touches[0].clientX - rect.left;
+        clientX = e.touches[0].clientX;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
     }
-    return e.clientX - rect.left;
+
+    // Fallback
+    if (clientX === undefined) {
+        return lastMouseX;
+    }
+
+    return (clientX - rect.left) * scaleX;
 }
 
 function renderGuideLine() {
