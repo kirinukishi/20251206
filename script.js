@@ -148,6 +148,10 @@ let isBGMEnabled = true;
 function toggleBGM(e) {
     // Stop propagation so we don't drop a fruit when clicking the button
     e.stopPropagation();
+    // Prevent default to avoid double-firing on touch devices (touchstart + click)
+    if (e.type === 'touchstart') {
+        e.preventDefault();
+    }
 
     const bgm = document.getElementById('bgm');
     const btn = document.getElementById('bgm-toggle');
@@ -155,7 +159,7 @@ function toggleBGM(e) {
     isBGMEnabled = !isBGMEnabled;
 
     if (isBGMEnabled) {
-        bgm.play();
+        bgm.play().catch(e => console.log("Audio play failed:", e));
         btn.innerText = 'BGM ON';
         btn.style.background = '#fff';
         btn.style.color = 'var(--text-color)';
