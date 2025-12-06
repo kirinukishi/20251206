@@ -71,15 +71,22 @@ function init() {
     World.add(engine.world, [ground, leftWall, rightWall]);
 
     // Input Handling
+    // Touch/Mouse Start: Move fruit to position immediately
+    canvas.addEventListener('mousedown', handleInputStart);
+    canvas.addEventListener('touchstart', handleInputStart, { passive: false });
+
+    // Move: Follow pointer
     canvas.addEventListener('mousemove', handleInputMove);
     canvas.addEventListener('touchmove', handleInputMove, { passive: false });
-    canvas.addEventListener('click', handleInputClick);
-    canvas.addEventListener('touchend', handleInputClick);
+
+    // End: Drop fruit
+    canvas.addEventListener('mouseup', handleInputEnd);
+    canvas.addEventListener('touchend', handleInputEnd, { passive: false });
+    // Also handle mouseleave as end to prevent stuck holding
+    canvas.addEventListener('mouseleave', handleInputEnd);
 
     // BGM Toggle
     const bgmBtn = document.getElementById('bgm-toggle');
-    // Use mousedown/touchstart to catch it before canvas click if possible, 
-    // or just rely on stopPropagation in the click handler, but we need to ensure UI layer allows clicks.
     bgmBtn.addEventListener('click', toggleBGM);
     bgmBtn.addEventListener('touchstart', toggleBGM, { passive: false });
 
@@ -141,6 +148,10 @@ let isBGMEnabled = true;
 function toggleBGM(e) {
     // Stop propagation so we don't drop a fruit when clicking the button
     e.stopPropagation();
+    // Prevent default to avoid double-firing on touch devices (touchstart + click)
+    if (e.type === 'touchstart') {
+        e.preventDefault();
+    }
 
     const bgm = document.getElementById('bgm');
     const btn = document.getElementById('bgm-toggle');
@@ -148,7 +159,7 @@ function toggleBGM(e) {
     isBGMEnabled = !isBGMEnabled;
 
     if (isBGMEnabled) {
-        bgm.play();
+        bgm.play().catch(e => console.log("Audio play failed:", e));
         btn.innerText = 'BGM ON';
         btn.style.background = '#fff';
         btn.style.color = 'var(--text-color)';
@@ -177,8 +188,6 @@ function createNewCurrentFruit() {
     const char = CHARACTERS[index];
     const scale = getScale(char);
 
-    // Create a sensor body (doesn't collide with world yet) for the "holding" phase
-
     // Dynamic Start Y: Ensure we spawn above the highest fruit
     let startY = 100;
     const bodies = Composite.allBodies(engine.world);
@@ -195,11 +204,8 @@ function createNewCurrentFruit() {
         startY = Math.max(50, minY - char.radius - 10);
     }
 
-    // Use last known mouse X, clamped to walls
-    const radius = char.radius;
-    const minX = radius + WALL_THICKNESS / 2 + 5;
-    const maxX = render.canvas.width - radius - WALL_THICKNESS / 2 - 5;
-    const startX = Math.max(minX, Math.min(lastMouseX, maxX));
+    // Always spawn at CENTER
+    const startX = GAME_WIDTH / 2;
 
     currentFruit = Bodies.circle(startX, startY, char.radius, {
         isSensor: true, // Don't collide yet
@@ -236,33 +242,23 @@ function getScale(char) {
     return (char.radius * 2.3) / Math.max(char.w, char.h);
 }
 
-function handleInputMove(e) {
-    const x = getEventX(e);
-    lastMouseX = x; // Update global tracker
-
+function handleInputStart(e) {
     if (!currentFruit || isDropping) return;
     e.preventDefault();
-
-    // Clamp x
-    const radius = currentFruit.circleRadius;
-    const minX = radius + WALL_THICKNESS / 2 + 5;
-    const maxX = render.canvas.width - radius - WALL_THICKNESS / 2 - 5;
-
-    const clampedX = Math.max(minX, Math.min(x, maxX));
-
-    // Move the static body
-    Body.setPosition(currentFruit, { x: clampedX, y: currentFruit.position.y });
+    updateFruitPosition(e);
 }
 
-function handleInputClick(e) {
-    playBGM(); // Ensure BGM starts on first click
+function handleInputMove(e) {
+    if (!currentFruit || isDropping) return;
+    e.preventDefault();
+    updateFruitPosition(e);
+}
 
-    // Update lastMouseX on click too, just in case
-    lastMouseX = getEventX(e);
-
+function handleInputEnd(e) {
     if (!currentFruit || isDropping) return;
     e.preventDefault();
 
+    // Drop the fruit
     isDropping = true;
 
     // Make it a real physical body
@@ -283,22 +279,35 @@ function handleInputClick(e) {
     }, 1000);
 }
 
+function updateFruitPosition(e) {
+    const x = getEventX(e);
+    if (isNaN(x)) return;
+
+    const radius = currentFruit.circleRadius;
+    const minX = radius + WALL_THICKNESS / 2 + 5;
+    const maxX = GAME_WIDTH - radius - WALL_THICKNESS / 2 - 5;
+
+    const clampedX = Math.max(minX, Math.min(x, maxX));
+    Body.setPosition(currentFruit, { x: clampedX, y: currentFruit.position.y });
+}
+
 function getEventX(e) {
     const rect = render.canvas.getBoundingClientRect();
     const scaleX = GAME_WIDTH / rect.width; // Map CSS pixels to Canvas pixels
 
-    let clientX = e.clientX;
+    let clientX;
 
-    if (e.touches && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
-        clientX = e.changedTouches[0].clientX;
+    if (e.type.startsWith('touch')) {
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+        }
+    } else {
+        clientX = e.clientX;
     }
 
-    // Fallback
-    if (clientX === undefined) {
-        return lastMouseX;
-    }
+    if (clientX === undefined) return NaN;
 
     return (clientX - rect.left) * scaleX;
 }

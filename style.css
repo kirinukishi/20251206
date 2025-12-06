@@ -185,18 +185,18 @@ body {
 
 .icon-btn {
     background: #fff;
-    border: 3px solid var(--text-color);
-    border-radius: 30px;
+    border: 2px solid var(--text-color);
+    border-radius: 20px;
     /* Pill shape */
-    padding: 5px 15px;
-    font-size: 1rem;
+    padding: 3px 10px;
+    font-size: 0.8rem;
     font-weight: bold;
     color: var(--text-color);
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
     transition: transform 0.1s;
     font-family: 'M PLUS Rounded 1c', sans-serif;
 }
@@ -205,7 +205,19 @@ body {
     transform: scale(0.95);
 }
 
-#score-board,
+#score-board {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1rem;
+    color: var(--text-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 #next-prediction {
     background: #fff;
     padding: 8px 20px;
