@@ -85,11 +85,6 @@ function init() {
     // Also handle mouseleave as end to prevent stuck holding
     canvas.addEventListener('mouseleave', handleInputEnd);
 
-    // BGM Toggle
-    const bgmBtn = document.getElementById('bgm-toggle');
-    bgmBtn.addEventListener('click', toggleBGM);
-    bgmBtn.addEventListener('touchstart', toggleBGM, { passive: false });
-
     // Collision Handling (Merge Logic)
     // Use collisionActive to catch bodies that are already overlapping
     Events.on(engine, 'collisionStart', handleCollisions);
@@ -142,34 +137,7 @@ function init() {
 }
 
 // Track last mouse X for spawning
-let lastMouseX = 250; // Default center
-let isBGMEnabled = true;
-
-function toggleBGM(e) {
-    // Stop propagation so we don't drop a fruit when clicking the button
-    e.stopPropagation();
-    // Prevent default to avoid double-firing on touch devices (touchstart + click)
-    if (e.type === 'touchstart') {
-        e.preventDefault();
-    }
-
-    const bgm = document.getElementById('bgm');
-    const btn = document.getElementById('bgm-toggle');
-
-    isBGMEnabled = !isBGMEnabled;
-
-    if (isBGMEnabled) {
-        bgm.play().catch(e => console.log("Audio play failed:", e));
-        btn.innerText = 'BGM ON';
-        btn.style.background = '#fff';
-        btn.style.color = 'var(--text-color)';
-    } else {
-        bgm.pause();
-        btn.innerText = 'BGM OFF';
-        btn.style.background = '#ddd';
-        btn.style.color = '#888';
-    }
-}
+let lastMouseX = GAME_WIDTH / 2; // Default center
 
 function getRandomSpawnIndex() {
     const r = Math.random();
@@ -229,14 +197,7 @@ function createNewCurrentFruit() {
     updateUI();
 }
 
-function playBGM() {
-    if (!isBGMEnabled) return;
-    const bgm = document.getElementById('bgm');
-    if (bgm && bgm.paused) {
-        bgm.volume = 0.3;
-        bgm.play().catch(e => console.log("Audio play failed (user interaction needed):", e));
-    }
-}
+
 
 function getScale(char) {
     return (char.radius * 2.3) / Math.max(char.w, char.h);
